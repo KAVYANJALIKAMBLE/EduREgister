@@ -1,4 +1,4 @@
-# EduREgister
+# EduRegister
 EduRegister — English &amp; Marathi-language school management web app
 # 🏫 EduRegister — ऑनलाइन मराठी शालेय अभिलेख प्रणाली
 
