@@ -8,7 +8,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // ROUTES
-const studentRoutes = require("./routes/students");
+const studentRoutes = require("./students");
 app.use("/students", studentRoutes);
 
 // START SERVER
