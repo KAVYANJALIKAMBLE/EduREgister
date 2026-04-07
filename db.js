@@ -1,39 +1,49 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+require('dotenv').config();
+const { Pool } = require('pg');
 
-const dbPath = path.resolve(__dirname, 'eduregister.db');
-const db = new sqlite3.Database(dbPath, (err) => {
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+pool.connect((err, client, release) => {
   if (err) {
     console.error("DB Connection Failed", err);
   } else {
-    console.log("SQLite (Local DB) Connected");
+    console.log("PostgreSQL (Supabase) Connected");
     
     // Create the students table if it doesn't already exist
-    db.run(`CREATE TABLE IF NOT EXISTS students (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name_en TEXT,
-      class TEXT,
-      division TEXT
-    )`);
+    client.query(`CREATE TABLE IF NOT EXISTS students (
+      id SERIAL PRIMARY KEY,
+      name_en VARCHAR(255),
+      class VARCHAR(50),
+      division VARCHAR(50)
+    )`, (err, result) => {
+      release();
+      if (err) {
+        console.error("Error creating table", err.stack);
+      }
+    });
   }
 });
 
-// Create a wrapper to make mapping syntax match mysql2 (so students.js doesn't need changes)
+// Create a wrapper to make mapping syntax simple
 const wrappedDb = {
   query: function(sql, params, callback) {
     if (typeof params === 'function') {
       callback = params;
       params = [];
     }
-    if (sql.trim().toUpperCase().startsWith('SELECT')) {
-      db.all(sql, params, function(err, rows) {
-        if (callback) callback(err, rows);
-      });
-    } else {
-      db.run(sql, params, function(err) {
-        if (callback) callback(err, { insertId: this.lastID, changes: this.changes });
-      });
-    }
+    
+    // Replace MySQL/SQLite (?) placeholders with PostgreSQL ($1, $2) placeholders
+    let index = 1;
+    let pgSql = sql.replace(/\?/g, () => '$' + index++);
+
+    pool.query(pgSql, params, function(err, result) {
+      if (callback) {
+        if (err) return callback(err, null);
+        callback(null, result.rows ? result.rows : result);
+      }
+    });
   }
 };
 
